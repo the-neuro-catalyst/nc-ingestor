@@ -161,10 +161,10 @@ impl QdrantIngestor {
             for (key, value,) in obj {
                 qdrant_payload.insert(key.clone(), serde_json_value_to_qdrant_value(value,),);
 
-                if let Some(embed_f,) = &self.config.embed_field {
-                    if key == embed_f {
-                        text_to_embed = value.as_str().map(|s| s.to_string(),);
-                    }
+                if let Some(embed_f,) = &self.config.embed_field
+                    && key == embed_f
+                {
+                    text_to_embed = value.as_str().map(|s| s.to_string(),);
                 }
             }
         }

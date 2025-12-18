@@ -2,6 +2,7 @@
 // Command Line Interface (CLI) specific logic for nc_ingestor.
 
 use std::path::PathBuf;
+
 use clap::Parser;
 
 /// Command Line Interface for the nc_ingestor module.
@@ -52,27 +53,29 @@ pub struct CommonIngestorArgs {
 
     /// Custom column mappings (e.g., --map source_field:target_column)
     #[clap(long, value_parser = parse_key_val, value_delimiter = ',')]
-    pub map: Option<Vec<(String, String)>>,
+    pub map: Option<Vec<(String, String,),>,>,
 
     /// OpenAI API Key for generating embeddings
     #[clap(long, env = "OPENAI_API_KEY")]
-    pub openai_api_key: Option<String>,
+    pub openai_api_key: Option<String,>,
 
     /// Field name to use for generating embeddings
     #[clap(long)]
-    pub embed_field: Option<String>,
+    pub embed_field: Option<String,>,
 
-    /// JSON string defining relationships for Neo4j (e.g., '[{"source_field":"user_id","target_label":"User","target_field":"id","relationship_type":"BELONGS_TO"}]')
+    /// JSON string defining relationships for Neo4j (e.g.,
+    /// '[{"source_field":"user_id","target_label":"User","target_field":"id","relationship_type":"
+    /// BELONGS_TO"}]')
     #[clap(long)]
-    pub relationships: Option<String>,
+    pub relationships: Option<String,>,
 }
 
 /// Parse a single key-value pair
-fn parse_key_val(s: &str) -> Result<(String, String), String> {
+fn parse_key_val(s: &str,) -> Result<(String, String,), String,> {
     let pos = s
-        .find(':')
-        .ok_or_else(|| format!("invalid KEY:VALUE: no `:` found in `{}`", s))?;
-    Ok((s[..pos].to_string(), s[pos + 1..].to_string()))
+        .find(':',)
+        .ok_or_else(|| format!("invalid KEY:VALUE: no `:` found in `{}`", s),)?;
+    Ok((s[..pos].to_string(), s[pos + 1..].to_string(),),)
 }
 
 #[derive(Parser, Debug,)]

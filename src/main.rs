@@ -4,9 +4,7 @@
 use std::future::Future;
 
 use clap::Parser;
-use nc_ingestor::cli::{
-    Cli, Commands, MongoArgs, Neo4jArgs, PostgresArgs, QdrantArgs, SqliteArgs,
-};
+use nc_ingestor::cli::{Cli, Commands, MongoArgs, Neo4jArgs, PostgresArgs, QdrantArgs, SqliteArgs};
 use nc_ingestor::error::{IngestorError, Result};
 use nc_ingestor::ingestor::{Ingestor, IngestorConfig};
 use nc_ingestor::mongo::MongoIngestor;
@@ -17,16 +15,17 @@ use nc_ingestor::sqlite::SqliteIngestor;
 use nc_reader::file_reader::{FileReaderOptions, read_file_content};
 use nc_reader::output::{OutputFormat, OutputMode};
 use serde::Serialize;
-use tracing::{info, error};
-use tracing_subscriber::{fmt, prelude::*, EnvFilter};
+use tracing::{error, info};
+use tracing_subscriber::prelude::*;
+use tracing_subscriber::{EnvFilter, fmt};
 
-#[derive(Serialize)]
+#[derive(Serialize,)]
 struct ProcessingError {
-    path: String,
+    path:  String,
     error: String,
 }
 
-#[derive(Serialize, Default)]
+#[derive(Serialize, Default,)]
 struct Report {
     total_files:   usize,
     success_count: usize,
@@ -58,7 +57,7 @@ impl ProcessingRegistry {
         report.total_files += 1;
         report.failure_count += 1;
         report.errors.push(ProcessingError {
-            path: path.to_string(),
+            path:  path.to_string(),
             error: err.clone(),
         },);
 
@@ -99,15 +98,55 @@ async fn main() -> Result<(),> {
         .init();
 
     let cli = Cli::parse();
-    let registry = std::sync::Arc::new(ProcessingRegistry::new(cli.strict));
+    let registry = std::sync::Arc::new(ProcessingRegistry::new(cli.strict,),);
 
     let res = match &cli.command {
-        Commands::Mongo(args,) => handle_ingestion(args, MongoIngestor::new, std::sync::Arc::clone(&registry), cli.concurrency).await,
-        Commands::Neo4j(args,) => handle_ingestion(args, Neo4jIngestor::new, std::sync::Arc::clone(&registry), cli.concurrency).await,
-        Commands::Postgres(args,) => handle_ingestion(args, PostgresIngestor::new, std::sync::Arc::clone(&registry), cli.concurrency).await,
-        Commands::Qdrant(args,) => handle_ingestion(args, QdrantIngestor::new, std::sync::Arc::clone(&registry), cli.concurrency).await,
+        Commands::Mongo(args,) => {
+            handle_ingestion(
+                args,
+                MongoIngestor::new,
+                std::sync::Arc::clone(&registry,),
+                cli.concurrency,
+            )
+            .await
+        },
+        Commands::Neo4j(args,) => {
+            handle_ingestion(
+                args,
+                Neo4jIngestor::new,
+                std::sync::Arc::clone(&registry,),
+                cli.concurrency,
+            )
+            .await
+        },
+        Commands::Postgres(args,) => {
+            handle_ingestion(
+                args,
+                PostgresIngestor::new,
+                std::sync::Arc::clone(&registry,),
+                cli.concurrency,
+            )
+            .await
+        },
+        Commands::Qdrant(args,) => {
+            handle_ingestion(
+                args,
+                QdrantIngestor::new,
+                std::sync::Arc::clone(&registry,),
+                cli.concurrency,
+            )
+            .await
+        },
 
-        Commands::Sqlite(args,) => handle_ingestion(args, SqliteIngestor::new, std::sync::Arc::clone(&registry), cli.concurrency).await,
+        Commands::Sqlite(args,) => {
+            handle_ingestion(
+                args,
+                SqliteIngestor::new,
+                std::sync::Arc::clone(&registry,),
+                cli.concurrency,
+            )
+            .await
+        },
     };
 
     if cli.report {
@@ -120,7 +159,7 @@ async fn main() -> Result<(),> {
 async fn handle_ingestion<T: Ingestor + Send + Sync + 'static, F,>(
     args: &impl IngestionArgs,
     ingestor_factory: impl FnOnce(IngestorConfig,) -> F,
-    registry: std::sync::Arc<ProcessingRegistry>,
+    registry: std::sync::Arc<ProcessingRegistry,>,
     concurrency: usize,
 ) -> Result<(),>
 where
@@ -141,38 +180,45 @@ where
 
     let ingestor_res = ingestor_factory(config,).await;
     let ingestor = match ingestor_res {
-        Ok(i) => std::sync::Arc::new(i),
-        Err(e) => {
-            registry.record_error(&path.to_string_lossy(), e.to_string())?;
-            return Ok(());
-        }
+        Ok(i,) => std::sync::Arc::new(i,),
+        Err(e,) => {
+            registry.record_error(&path.to_string_lossy(), e.to_string(),)?;
+            return Ok((),);
+        },
     };
 
     let mut files = Vec::new();
     if path.is_file() {
-        files.push(path.to_path_buf());
+        files.push(path.to_path_buf(),);
     } else if path.is_dir() {
-        for entry in walkdir::WalkDir::new(path).into_iter().filter_map(|e| e.ok()) {
+        for entry in walkdir::WalkDir::new(path,)
+            .into_iter()
+            .filter_map(|e| e.ok(),)
+        {
             if entry.path().is_file() {
-                files.push(entry.path().to_path_buf());
+                files.push(entry.path().to_path_buf(),);
             }
         }
     }
 
-    info!("Found {} files to process with concurrency {}", files.len(), concurrency);
+    info!(
+        "Found {} files to process with concurrency {}",
+        files.len(),
+        concurrency
+    );
 
     let mut join_set = tokio::task::JoinSet::new();
-    let semaphore = std::sync::Arc::new(tokio::sync::Semaphore::new(concurrency));
+    let semaphore = std::sync::Arc::new(tokio::sync::Semaphore::new(concurrency,),);
 
     for file in files {
-        let ingestor_task = std::sync::Arc::clone(&ingestor);
-        let registry_task = std::sync::Arc::clone(&registry);
+        let ingestor_task = std::sync::Arc::clone(&ingestor,);
+        let registry_task = std::sync::Arc::clone(&registry,);
         let permit = semaphore.clone().acquire_owned().await.unwrap();
-        
+
         join_set.spawn(async move {
             let _permit = permit; // Hold permit until task is done
             let file_str = file.to_string_lossy().to_string();
-            
+
             let reader_options = FileReaderOptions {
                 head:               None,
                 file_type_override: None,
@@ -184,34 +230,34 @@ where
             };
 
             info!("Processing: {}", file_str);
-            let nc_res = read_file_content(&file, reader_options).await;
-            
+            let nc_res = read_file_content(&file, reader_options,).await;
+
             let data = match nc_res {
-                Ok(d) => d,
-                Err(e) => {
-                    let _ = registry_task.record_error(&file_str, e.to_string());
+                Ok(d,) => d,
+                Err(e,) => {
+                    let _ = registry_task.record_error(&file_str, e.to_string(),);
                     return;
-                }
+                },
             };
 
-            match ingestor_task.ingest(data).await {
-                Ok(_) => {
+            match ingestor_task.ingest(data,).await {
+                Ok(_,) => {
                     registry_task.record_success();
                     info!("Successfully ingested: {}", file_str);
-                }
-                Err(e) => {
-                    let _ = registry_task.record_error(&file_str, e.to_string());
-                }
+                },
+                Err(e,) => {
+                    let _ = registry_task.record_error(&file_str, e.to_string(),);
+                },
             }
-        });
+        },);
     }
 
-    while let Some(res) = join_set.join_next().await {
-        if let Err(e) = res {
+    while let Some(res,) = join_set.join_next().await {
+        if let Err(e,) = res {
             error!("Task panicked: {}", e);
         }
     }
-    
+
     Ok((),)
 }
 
@@ -222,12 +268,14 @@ trait IngestionArgs {
     fn collection_name(&self,) -> Option<String,>;
     fn vector_size(&self,) -> Option<u64,>;
     fn mappings(&self,) -> Option<std::collections::HashMap<String, String,>,>;
-    fn openai_api_key(&self) -> Option<String>;
-    fn embed_field(&self) -> Option<String>;
-    fn relationships(&self) -> Option<Vec<nc_ingestor::ingestor::RelationshipConfig>>;
+    fn openai_api_key(&self,) -> Option<String,>;
+    fn embed_field(&self,) -> Option<String,>;
+    fn relationships(&self,) -> Option<Vec<nc_ingestor::ingestor::RelationshipConfig,>,>;
 }
 
-fn map_to_hashmap(map_vec: &Option<Vec<(String, String,),>,>,) -> Option<std::collections::HashMap<String, String,>,> {
+fn map_to_hashmap(
+    map_vec: &Option<Vec<(String, String,),>,>,
+) -> Option<std::collections::HashMap<String, String,>,> {
     map_vec.as_ref().map(|vec| vec.iter().cloned().collect(),)
 }
 
@@ -252,16 +300,19 @@ impl IngestionArgs for MongoArgs {
         map_to_hashmap(&self.common.map,)
     }
 
-    fn openai_api_key(&self) -> Option<String> {
+    fn openai_api_key(&self,) -> Option<String,> {
         self.common.openai_api_key.clone()
     }
 
-    fn embed_field(&self) -> Option<String> {
+    fn embed_field(&self,) -> Option<String,> {
         self.common.embed_field.clone()
     }
 
-    fn relationships(&self) -> Option<Vec<nc_ingestor::ingestor::RelationshipConfig>> {
-        self.common.relationships.as_ref().and_then(|s| serde_json::from_str(s).ok())
+    fn relationships(&self,) -> Option<Vec<nc_ingestor::ingestor::RelationshipConfig,>,> {
+        self.common
+            .relationships
+            .as_ref()
+            .and_then(|s| serde_json::from_str(s,).ok(),)
     }
 }
 
@@ -286,16 +337,19 @@ impl IngestionArgs for Neo4jArgs {
         map_to_hashmap(&self.common.map,)
     }
 
-    fn openai_api_key(&self) -> Option<String> {
+    fn openai_api_key(&self,) -> Option<String,> {
         self.common.openai_api_key.clone()
     }
 
-    fn embed_field(&self) -> Option<String> {
+    fn embed_field(&self,) -> Option<String,> {
         self.common.embed_field.clone()
     }
 
-    fn relationships(&self) -> Option<Vec<nc_ingestor::ingestor::RelationshipConfig>> {
-        self.common.relationships.as_ref().and_then(|s| serde_json::from_str(s).ok())
+    fn relationships(&self,) -> Option<Vec<nc_ingestor::ingestor::RelationshipConfig,>,> {
+        self.common
+            .relationships
+            .as_ref()
+            .and_then(|s| serde_json::from_str(s,).ok(),)
     }
 }
 
@@ -320,16 +374,19 @@ impl IngestionArgs for PostgresArgs {
         map_to_hashmap(&self.common.map,)
     }
 
-    fn openai_api_key(&self) -> Option<String> {
+    fn openai_api_key(&self,) -> Option<String,> {
         self.common.openai_api_key.clone()
     }
 
-    fn embed_field(&self) -> Option<String> {
+    fn embed_field(&self,) -> Option<String,> {
         self.common.embed_field.clone()
     }
 
-    fn relationships(&self) -> Option<Vec<nc_ingestor::ingestor::RelationshipConfig>> {
-        self.common.relationships.as_ref().and_then(|s| serde_json::from_str(s).ok())
+    fn relationships(&self,) -> Option<Vec<nc_ingestor::ingestor::RelationshipConfig,>,> {
+        self.common
+            .relationships
+            .as_ref()
+            .and_then(|s| serde_json::from_str(s,).ok(),)
     }
 }
 
@@ -354,16 +411,19 @@ impl IngestionArgs for QdrantArgs {
         map_to_hashmap(&self.common.map,)
     }
 
-    fn openai_api_key(&self) -> Option<String> {
+    fn openai_api_key(&self,) -> Option<String,> {
         self.common.openai_api_key.clone()
     }
 
-    fn embed_field(&self) -> Option<String> {
+    fn embed_field(&self,) -> Option<String,> {
         self.common.embed_field.clone()
     }
 
-    fn relationships(&self) -> Option<Vec<nc_ingestor::ingestor::RelationshipConfig>> {
-        self.common.relationships.as_ref().and_then(|s| serde_json::from_str(s).ok())
+    fn relationships(&self,) -> Option<Vec<nc_ingestor::ingestor::RelationshipConfig,>,> {
+        self.common
+            .relationships
+            .as_ref()
+            .and_then(|s| serde_json::from_str(s,).ok(),)
     }
 }
 
@@ -388,15 +448,18 @@ impl IngestionArgs for SqliteArgs {
         map_to_hashmap(&self.common.map,)
     }
 
-    fn openai_api_key(&self) -> Option<String> {
+    fn openai_api_key(&self,) -> Option<String,> {
         self.common.openai_api_key.clone()
     }
 
-    fn embed_field(&self) -> Option<String> {
+    fn embed_field(&self,) -> Option<String,> {
         self.common.embed_field.clone()
     }
 
-    fn relationships(&self) -> Option<Vec<nc_ingestor::ingestor::RelationshipConfig>> {
-        self.common.relationships.as_ref().and_then(|s| serde_json::from_str(s).ok())
+    fn relationships(&self,) -> Option<Vec<nc_ingestor::ingestor::RelationshipConfig,>,> {
+        self.common
+            .relationships
+            .as_ref()
+            .and_then(|s| serde_json::from_str(s,).ok(),)
     }
 }

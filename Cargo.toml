@@ -5,7 +5,7 @@ version = "0.0.1-alpha"
 authors = ["The Architect <architect@theneurocatalyst.com>"]
 edition = "2024"
 license = "MIT"
-repository = "[https://github.com/The-Neuro-Catalyst-Foundation/nc-ingestor](https://github.com/The-Neuro-Catalyst-Foundation/nc-ingestor)"
+repository = "[https://github.com/the-neuro-catalyst/nc-ingestor](https://github.com/the-neuro-catalyst/nc-ingestor)"
 categories = ["science", "data-structures", "algorithms"]
 keywords = ["scm-protocol", "velocity-mechanics", "zero-friction"]
 
@@ -22,7 +22,7 @@ futures-util.workspace = true
 clap = { version = "4.4", features = ["derive", "env"] }
 thiserror = "1.0"
 bytes = "1.9"
-nc-reader = { path = "../nc_reader" }
+nc-reader = { workspace = true }
 tokio = { version = "1.35", features = ["full"] }
 rusqlite = "0.37.0"
 serde_json = "1.0"
@@ -40,7 +40,7 @@ walkdir.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
 tracing-appender.workspace = true
-nc-schema = { path = "../nc_schema" }
+nc_schema = { workspace = true }
 
 [dev-dependencies]
 

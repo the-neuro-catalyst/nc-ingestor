@@ -23,13 +23,19 @@ pub enum IngestorError {
 }
 
 impl IngestorError {
-    pub fn is_transient(&self) -> bool {
+    pub fn is_transient(&self,) -> bool {
         match self {
-            IngestorError::ConnectionError(_) => true,
-            IngestorError::DatabaseError(msg) => {
+            IngestorError::ConnectionError(_,) => true,
+            IngestorError::DatabaseError(msg,) => {
                 let m = msg.to_lowercase();
-                m.contains("timeout") || m.contains("connection") || m.contains("too many clients") || m.contains("busy") || m.contains("server selection") || m.contains("connection reset") || m.contains("service unavailable")
-            }
+                m.contains("timeout",)
+                    || m.contains("connection",)
+                    || m.contains("too many clients",)
+                    || m.contains("busy",)
+                    || m.contains("server selection",)
+                    || m.contains("connection reset",)
+                    || m.contains("service unavailable",)
+            },
             _ => false,
         }
     }
