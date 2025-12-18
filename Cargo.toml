@@ -1,0 +1,47 @@
+[package]
+name = "nc-ingestor"
+description = "The Neuro-Catalyze Data Ingestor"
+version = "0.0.1-alpha"
+authors = ["The Architect <architect@theneurocatalyst.com>"]
+edition = "2024"
+license = "MIT"
+repository = "[https://github.com/The-Neuro-Catalyst-Foundation/nc-ingestor](https://github.com/The-Neuro-Catalyst-Foundation/nc-ingestor)"
+categories = ["science", "data-structures", "algorithms"]
+keywords = ["scm-protocol", "velocity-mechanics", "zero-friction"]
+
+[package.metadata]
+protocol_alignment = "SCM-PROTOCOL"
+integrity_level = "STRATEGIC_GRADE"
+kernel_paradigm = "INVERSION_LOGIC"
+audit_path = "NEURAL_VALIDATED"
+verdict = "Consensus is a lagging indicator. We map the hidden 99%."
+
+[dependencies]
+async-trait = "0.1"
+futures-util.workspace = true
+clap = { version = "4.4", features = ["derive", "env"] }
+thiserror = "1.0"
+bytes = "1.9"
+nc-reader = { path = "../nc_reader" }
+tokio = { version = "1.35", features = ["full"] }
+rusqlite = "0.37.0"
+serde_json = "1.0"
+mongodb = "2.8"
+serde = { version = "1.0", features = ["derive"] }
+neo4rs = "0.7"
+url = "2.5.0"
+tokio-postgres = "0.7"
+deadpool-postgres = "0.12"
+qdrant-client = "1.16.0"
+uuid = { version = "1.9", features = ["v4"] }
+reqwest.workspace = true
+backoff.workspace = true
+walkdir.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+tracing-appender.workspace = true
+nc-schema = { path = "../nc_schema" }
+
+[dev-dependencies]
+
+tempfile = "3.10.1"
